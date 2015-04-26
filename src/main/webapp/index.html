@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Jan Messenger</title>
+
+    <link href="/css/bootstrap.min1.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body onload="run();" onresize="onResizeDocument();">
+
+  <nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Jan Messenger</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">Conversation <span class="sr-only">(current)</span></a></li>
+        <li><a href="#">History</a></li>          
+      </ul>
+      <div class="navbar-form navbar-left" role="input">
+           <div class="input-group user" id="name" data-toggle="tooltip" data-placement="right" title="Your nickname">
+            <span class="input-group-addon" id="basic-addon1" >@</span>
+            <input type="text" class="form-control" id="input-name" placeholder="Input nickname..." ariadescribedby="basic-adddon1" maxlength="20" data-placement="bottom" data-trigger="manual" data-toggle="popover" title="WARNING! Empty nickname!" data-content=" You must input nickname before sending message.">
+        </div>
+      </div>
+      
+      <ul class="nav navbar-nav navbar-center">
+          <li id="icon-edit" data-toggle="tooltip" data-placement="bottom" title="Edit message">
+            <a class="icon" href="#"><i class="glyphicon glyphicon-edit"></i></a>
+        </li>
+        <li id="icon-remove" data-toggle="tooltip" data-placement="bottom" title="Delete message">
+            <a class="icon" href="#"><i class="glyphicon glyphicon-remove"></i></a>
+        </li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+           <a href="#"><span class="counter-holder badge" id="messages-number" data-toggle="tooltip" data-placement="bottom" title="Messages' number">0</span></a>
+        </li>
+        <li id="connection-item"><a href="#"><span class="label label-danger" id="connection">Disconnected</span></a></li>
+        
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+   
+    <div class="container-fluid">
+        <div class="row body">
+            <div class="side col-md-2 col-md-offset-2 col-lg-2 col-lg-offset-2 col-sm-3 col-sm-offset-1 col-xs-4">
+                <p><span class="label label-info">Online:</span></p>
+                <ul class="persons list-group">
+                    <li class="list-group-item">Person 1</li>
+                    <li class="list-group-item">Person 2</li>
+                    <li class="list-group-item">Person 3</li>
+                    <li class="list-group-item">Person 4</li>
+                </ul>
+            </div>
+
+            <div class="side col-md-6 col-lg-6 col-sm-7 col-xs-8 conversation" >
+                <table class="table items table-hover"></table>
+                <div class="input-group" id="message-input" data-placement="left" data-trigger="hover" data-toggle="popover" title="Press:" data-content="'SHIFT+ENTER' to add new line; 'ENTER' to send message.">
+                    <textarea type="text" class="form-control" id="message-text" placeholder="Input message..." rows="4"></textarea>
+                    <span class="input-group-btn">
+                        <button class="btn btn-primary" type="button" id="add-button">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/scripts.js"></script>
+</body>
+</html>
