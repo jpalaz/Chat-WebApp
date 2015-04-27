@@ -12,26 +12,21 @@ public class Message implements JSONAware {
     private boolean edited;
     private boolean deleted;
 
-    public Message(String text, String username, String id) {
-        this.text = text;
-        this.username = username;
-        this.id = id;
-        this.edited = this.deleted = false;
-    }
-
-    public Message(String text, String username, String id, String time) {
+    public Message(String text, String username, String id, String time, String logTime) {
         this.text = text;
         this.username = username;
         this.id = id;
         this.time = time;
+        this.logTime = logTime;
         this.edited = this.deleted = false;
     }
 
-    public Message(String text, String username, String id, String time, boolean edited, boolean deleted) {
+    public Message(String text, String username, String id, String time, String logTime, boolean edited, boolean deleted) {
         this.text = text;
         this.username = username;
         this.id = id;
         this.time = time;
+        this.logTime = logTime;
         this.edited = edited;
         this.deleted = deleted;
     }
@@ -51,6 +46,14 @@ public class Message implements JSONAware {
     }
 
     public Message() {}
+
+    public Message(String text, String username, String id, Boolean edited, Boolean deleted) {
+        this.text = text;
+        this.username = username;
+        this.id = id;
+        this.edited = edited;
+        this.deleted = deleted;
+    }
 
     public String getUsername() {
         return username;

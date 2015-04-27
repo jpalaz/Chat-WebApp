@@ -25,9 +25,6 @@ public class MessageUtil {
     public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat ("hh:mm:ss");
     public static final SimpleDateFormat LOG_DATE_FORMAT = new SimpleDateFormat ("dd-MM-yyyy hh:mm");
 
-    public static File historyFile = new File( System.getProperty("user.home")
-            + System.getProperty("file.separator") + "history.xml");
-
     private MessageUtil() {}
 
     public static String getToken(int index) {
@@ -48,13 +45,12 @@ public class MessageUtil {
         Object id = json.get(ID);
         Object text = json.get(TEXT);
         Object username = json.get(USERNAME);
-        Object time = json.get(TIME);
         Object edited = json.get(EDITED);
         Object deleted = json.get(DELETED);
 
         if (id != null && text != null && username != null &&
-                time != null && edited != null && deleted != null) {
-            return new Message((String) text, (String) username, (String)id, (String)time,
+                edited != null && deleted != null) {
+            return new Message((String) text, (String) username, (String)id,
                     (Boolean) edited, (Boolean) deleted);
         }
         return null;

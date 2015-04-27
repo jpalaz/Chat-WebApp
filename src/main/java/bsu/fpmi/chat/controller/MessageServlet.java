@@ -4,7 +4,7 @@ import bsu.fpmi.chat.model.Message;
 import bsu.fpmi.chat.model.MessageStorage;
 import static bsu.fpmi.chat.util.MessageUtil.*;
 
-import bsu.fpmi.chat.util.SAXParsing;
+import bsu.fpmi.chat.storage.XMLHistoryParser;
 import bsu.fpmi.chat.util.ServletUtil;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
@@ -15,18 +15,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.*;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.util.Date;
 
-import org.w3c.dom.Attr;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.xml.sax.*;
 
 @WebServlet("/messages")
@@ -47,14 +39,12 @@ public class MessageServlet extends HttpServlet {
         }
     }
 
-    private void readHistory() throws SAXException, Exception{
-        if ( historyFile.createNewFile() ){
-            createXML();
+    private void readHistory() throws SAXException, IOException, ParserConfigurationException, TransformerException {
+        if (XMLHistoryParser.doesStorageExist()) {
+            MessageStorage.addAll(XMLHistoryParser.restoreMessages());
         } else {
-            SAXParserFactory factory = SAXParserFactory.newInstance();
-            SAXParser parser = factory.newSAXParser();
-            SAXParsing parsing = new SAXParsing();
-            parser.parse(historyFile, parsing);
+            XMLHistoryParser.createStorage();
+            addStubData();
         }
     }
 
@@ -79,10 +69,10 @@ public class MessageServlet extends HttpServlet {
             System.out.println(message.toString());
 
             MessageStorage.addMessage(message);
-            writeMessageToXML(message);
+            XMLHistoryParser.addToStorage(message);
             response.setStatus(HttpServletResponse.SC_OK);
 
-        } catch (ParseException e) {
+        } catch (ParseException | ParserConfigurationException | SAXException | TransformerException  e) {
             e.printStackTrace();
             //logger.error(e);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
@@ -120,92 +110,19 @@ public class MessageServlet extends HttpServlet {
         return jsonObject.toJSONString();
     }
 
-    private void addStubData() {
-        Message[] stubTasks = {
-                new Message("Hello, World!", "User1", "0", "04.04<br>15:09:49"),
-                new Message("Hello!", "World", "1", "04.04<br>15:11:20") };
-        MessageStorage.addAll(stubTasks);
-    }
+    private void addStubData() throws ParserConfigurationException, TransformerException {
+        Message[] stubMessages = {
+                new Message("Hello, World!", "User1", "0", "04.04<br>15:09:49", "04-04-2015 15:09"),
+                new Message("Hello!", "World", "1", "04.04<br>15:11:20", "04-04-2015 15:11") };
+        MessageStorage.addAll(stubMessages);
 
-    private void createXML() {
-        try {
-            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-
-            Document doc = docBuilder.newDocument();
-            Element rootElement = doc.createElement("messages");
-            doc.appendChild(rootElement);
-
-            // write the content into xml file
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(historyFile);
-
-            transformer.transform(source, result);
-        } catch (ParserConfigurationException e) {
-            //logger.error(e);
-            e.printStackTrace();
-        } catch (TransformerException e) {
-            //logger.error(e);
-            e.printStackTrace();
-        }
-    }
-
-    public void writeMessageToXML(Message message) {
-        try {
-            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            Document doc = docBuilder.parse(historyFile);
-            Node messages = doc.getFirstChild();
-
-            Element messageTag = doc.createElement("message");
-            messages.appendChild(messageTag);
-
-            Element username = doc.createElement("username");
-            username.appendChild(doc.createTextNode(message.getUsername()));
-            messageTag.appendChild(username);
-
-            Element id = doc.createElement("id");
-            id.appendChild(doc.createTextNode(message.getUsername()));
-            messageTag.appendChild(id);
-
-            Element text = doc.createElement("text");
-            text.appendChild(doc.createTextNode(message.getText()));
-            messageTag.appendChild(text);
-
-            Element time = doc.createElement("time");
-            time.appendChild(doc.createTextNode(message.getTime()));
-            messageTag.appendChild(time);
-
-            Element logTime = doc.createElement("log-time");
-            logTime.appendChild(doc.createTextNode(message.getLogTime()));
-            messageTag.appendChild(logTime);
-
-            Element edited = doc.createElement("edited");
-            edited.appendChild(doc.createTextNode(message.isEdited() + ""));
-            messageTag.appendChild(edited);
-
-            Element deleted = doc.createElement("deleted");
-            deleted.appendChild(doc.createTextNode(message.isDeleted() + ""));
-            messageTag.appendChild(deleted);
-
-            // write the content into xml file
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(historyFile);
-
-            transformer.transform(source, result);
-        } catch (ParserConfigurationException e) {
-            //logger.error(e);
-            e.printStackTrace();
-        } catch (TransformerException e) {
-            //logger.error(e);
-            e.printStackTrace();
-        } catch (Exception e) {
-            //logger.error(e);
-            e.printStackTrace();
+        for (Message message : stubMessages) {
+            try {
+                XMLHistoryParser.addToStorage(message);
+            } catch (ParserConfigurationException | SAXException | IOException | TransformerException e) {
+                //logger.error(e);
+                e.printStackTrace();
+            }
         }
     }
 }
