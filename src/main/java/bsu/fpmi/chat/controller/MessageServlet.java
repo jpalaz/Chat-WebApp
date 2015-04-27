@@ -34,29 +34,27 @@ public class MessageServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     //private static Logger logger = Logger.getLogger(MessageServlet.class.getName());
 
-
     @Override
     public void init() throws ServletException {
-        addStubData();
-
         try {
-            
-
-            if ( historyFile.createNewFile() ){
-                createXML();
-            } else {
-                SAXParserFactory factory = SAXParserFactory.newInstance();
-                SAXParser parser = factory.newSAXParser();
-                SAXParsing parsing = new SAXParsing();
-                parser.parse(historyFile, parsing);
-            }
-
+            readHistory();
         } catch (SAXException e) {
             //logger.error(e);
             e.printStackTrace();
         } catch (Exception e) {
             //logger.error(e);
             e.printStackTrace();
+        }
+    }
+
+    private void readHistory() throws SAXException, Exception{
+        if ( historyFile.createNewFile() ){
+            createXML();
+        } else {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser parser = factory.newSAXParser();
+            SAXParsing parsing = new SAXParsing();
+            parser.parse(historyFile, parsing);
         }
     }
 
@@ -159,11 +157,18 @@ public class MessageServlet extends HttpServlet {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
             Document doc = docBuilder.parse(historyFile);
-            Node messageTag = doc.getFirstChild();
+            Node messages = doc.getFirstChild();
+
+            Element messageTag = doc.createElement("message");
+            messages.appendChild(messageTag);
 
             Element username = doc.createElement("username");
             username.appendChild(doc.createTextNode(message.getUsername()));
             messageTag.appendChild(username);
+
+            Element id = doc.createElement("id");
+            id.appendChild(doc.createTextNode(message.getUsername()));
+            messageTag.appendChild(id);
 
             Element text = doc.createElement("text");
             text.appendChild(doc.createTextNode(message.getText()));

@@ -23,6 +23,10 @@ public class MessageStorage {
         INSTANCE.addAll(Arrays.asList(messages));
     }
 
+    public static void addAll(List<Message> messages) {
+        INSTANCE.addAll(messages);
+    }
+
     public static int getSize() {
         return INSTANCE.size();
     }

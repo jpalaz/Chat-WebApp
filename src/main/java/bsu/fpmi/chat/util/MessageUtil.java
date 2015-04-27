@@ -28,13 +28,6 @@ public class MessageUtil {
     public static File historyFile = new File( System.getProperty("user.home")
             + System.getProperty("file.separator") + "history.xml");
 
-    {
-        //String workingDir = System.getProperty("java.class.path");
-        //System.out.println("Current working directory : " + workingDir);
-//        historyFile = new File( System.getProperty("user.home")
-//                + System.getProperty("file.separator") + "history.xml");
-    }
-
     private MessageUtil() {}
 
     public static String getToken(int index) {
