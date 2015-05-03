@@ -15,6 +15,13 @@ var createMessage = function(text) {
     };
 };
 
+var createNames = function(username) {
+    return {
+        oldName: username,
+        newName: ""
+    };
+};
+
 var appState = {
     mainUrl : 'messages',
     messages: {},
@@ -114,6 +121,9 @@ function updateItem(row, message) {
     row.lastChild.firstChild.lastChild.firstChild.innerText = message.text;
     row.lastChild.firstChild.lastChild.firstChild.innerHTML = message.text;
 
+    row.lastChild.firstChild.firstChild.innerText = message.username;
+    row.lastChild.firstChild.firstChild.innerHTML = message.username;
+
     if(message.deleted) {
         row.firstChild.innerHTML =  message.time + '<br>' + '<i class="glyphicon glyphicon-trash"></i>';
         row.classList.add('deleted-message');
@@ -178,9 +188,16 @@ function onNameInput(e) {
         storeUsername();
         $('#input-name').popover('show');
     } else {
+        var usernames = createNames(username);
+
         username = name.value;
+        usernames.newName = username;
         storeUsername();
         $('#input-name').popover('hide');
+
+        post(appState.mainUrl + "?username=true", JSON.stringify(usernames), function(){
+            onConnectionSet();
+        });
     }
 }
 
@@ -294,10 +311,15 @@ function storeUsername() {
 }
 
 function createAllMessages(allMessages) {
-    for (var i = 0; i < allMessages.length; i++) {
-        if (allMessages[i].id in appState.messages) {
-            var row = document.getElementById(allMessages[i].id.toString());
+    var messages = appState.messages;
+
+    for (var i = 0, id; i < allMessages.length; i++) {
+        id = allMessages[i].id;
+
+        if (id in messages) {
+            var row = document.getElementById(id);
             updateItem(row, allMessages[i]);
+            messages[id].username = allMessages[i].username;
         } else
             addMessageToHTML(allMessages[i]);
     }

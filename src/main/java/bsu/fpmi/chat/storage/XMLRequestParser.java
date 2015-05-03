@@ -14,8 +14,8 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class XMLRequestParser {
     private static final String REQUESTS_LOCATION = System.getProperty("user.home") +  File.separator + "requests.xml";
@@ -74,7 +74,7 @@ public class XMLRequestParser {
         transformer.transform(source, result);
     }
 
-    public static synchronized List<String> getRequests(int start) throws SAXException, IOException, ParserConfigurationException {
+    public static synchronized Set<String> getRequests(int start) throws SAXException, IOException, ParserConfigurationException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(REQUESTS_LOCATION);
@@ -83,7 +83,7 @@ public class XMLRequestParser {
         Element root = document.getDocumentElement();
         NodeList requestList = root.getElementsByTagName(ID);
 
-        List<String> ids = new ArrayList<>();
+        Set<String> ids = new TreeSet<>();
         for (int i = start; i < requestList.getLength(); i++) {
             Element requestTag = (Element) requestList.item(i);
 

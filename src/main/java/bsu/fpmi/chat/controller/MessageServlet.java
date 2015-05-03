@@ -77,14 +77,20 @@ public class MessageServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         logger.info("doPost");
         String data = ServletUtil.getMessageBody(request);
-//        String token = request.getParameter(USERNAME);
+        String username = request.getParameter("username");
         logger.info(data);
 
         try {
-            JSONObject message = stringToJson(data);
-            XMLHistoryParser.addToStorage(message);
+            if (username != null && "true".equals(username)) {
+                JSONObject usernames = stringToJson(data);
+                XMLHistoryParser.changeUsername(usernames);
+            } else {
+                JSONObject message = stringToJson(data);
+                XMLHistoryParser.addToStorage(message);
+            }
+
             response.setStatus(HttpServletResponse.SC_OK);
-        } catch (ParseException | ParserConfigurationException | SAXException | TransformerException  e) {
+        } catch (ParseException | XPathExpressionException | ParserConfigurationException | SAXException | TransformerException  e) {
             logger.error(e);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }

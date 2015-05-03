@@ -19,7 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static bsu.fpmi.chat.util.ServletUtil.*;
@@ -35,6 +35,9 @@ public class XMLHistoryParser {
     private static final String LOG_TIME = "log-time";
     private static final String EDITED = "edited";
     private static final String DELETED = "deleted";
+
+    private static final String OLD_NAME = "oldName";
+    private static final String NEW_NAME = "newName";
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat ("dd.MM");
     public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat ("hh:mm:ss");
@@ -111,6 +114,36 @@ public class XMLHistoryParser {
 
         StreamResult result = new StreamResult(STORAGE_LOCATION);
         transformer.transform(source, result);
+    }
+
+    public static synchronized void changeUsername(JSONObject usernames) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        Document document = documentBuilder.parse(STORAGE_LOCATION);
+        document.getDocumentElement().normalize();
+
+        String oldName = (String) usernames.get(OLD_NAME);
+        String newName = (String) usernames.get(NEW_NAME);
+        NodeList oldMessages = getNodeListByUsername(document, oldName);
+
+        for (int i = 0; i < oldMessages.getLength(); i++) {
+            Node messageNode = oldMessages.item(i);
+            Element message = (Element)messageNode;
+
+            String id = message.getAttribute(ID);
+            XMLRequestParser.addRequest(id);
+
+            Node usernameNode = message.getElementsByTagName(USERNAME).item(0);
+            usernameNode.setTextContent(newName);
+        }
+
+        if (oldMessages.getLength() > 0) {
+            Transformer transformer = getTransformer();
+            DOMSource source = new DOMSource(document);
+
+            StreamResult result = new StreamResult(STORAGE_LOCATION);
+            transformer.transform(source, result);
+        }
     }
 
     public static synchronized boolean update(JSONObject message) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
@@ -193,7 +226,7 @@ public class XMLHistoryParser {
         JSONObject jsonMessage;
         jsonMessage = new JSONObject();
 
-        List<String> ids = XMLRequestParser.getRequests(start);
+        Set<String> ids = XMLRequestParser.getRequests(start);
 
         for (String id : ids) {
             Node message = getNodeById(document, id);
@@ -234,6 +267,13 @@ public class XMLHistoryParser {
         XPath xpath = XPathFactory.newInstance().newXPath();
         XPathExpression expr = xpath.compile("//" + MESSAGE + "[@id='" + id + "']");
         return (Node) expr.evaluate(doc, XPathConstants.NODE);
+    }
+
+    private static NodeList getNodeListByUsername(Document doc, String username) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        XPathExpression expr = xpath.compile("//" + MESSAGE + "[" + USERNAME
+                + "[.='" + username + "']]");
+        return (NodeList) expr.evaluate(doc, XPathConstants.NODESET);
     }
 
     private static Transformer getTransformer() throws TransformerConfigurationException {
