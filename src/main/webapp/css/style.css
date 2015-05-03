@@ -40,6 +40,8 @@ textarea {
 
 .input-group-btn {
     vertical-align: bottom;
+    border-radius: 4px;
+    margin-left: 5px;
 }
 
 .navbar-center {
@@ -59,4 +61,12 @@ textarea {
 
 .icon {
     display: none;
+}
+/*
+#error-image {
+    text-align: center;
+}*/
+
+#error-image-p {
+    text-align: center;
 }

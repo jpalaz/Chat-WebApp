@@ -1,6 +1,8 @@
 package bsu.fpmi.chat.storage;
 
-import bsu.fpmi.chat.model.Message;
+import org.json.JSONArray;
+import org.json.XML;
+import org.json.simple.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -16,12 +18,15 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.UUID;
+
+import static bsu.fpmi.chat.util.ServletUtil.*;
 
 public class XMLHistoryParser {
     private static final String STORAGE_LOCATION = System.getProperty("user.home") +  File.separator + "history.xml";
-    private static File historyFile = new File(STORAGE_LOCATION);
 
     private static final String MESSAGE = "message";
     private static final String ID = "id";
@@ -31,6 +36,10 @@ public class XMLHistoryParser {
     private static final String LOG_TIME = "log-time";
     private static final String EDITED = "edited";
     private static final String DELETED = "deleted";
+
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat ("dd.MM");
+    public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat ("hh:mm:ss");
+    public static final SimpleDateFormat LOG_DATE_FORMAT = new SimpleDateFormat ("dd-MM-yyyy hh:mm");
 
     private XMLHistoryParser() {
     }
@@ -52,78 +61,86 @@ public class XMLHistoryParser {
 
         DOMSource source = new DOMSource(doc);
         StreamResult result = new StreamResult(new File(STORAGE_LOCATION));
-        //StreamResult result = new StreamResult(historyFile); TODO: field or new instance?
         transformer.transform(source, result);
     }
 
-    public static synchronized void addToStorage(Message message) throws ParserConfigurationException, SAXException, IOException, TransformerException {
+    public static synchronized void addToStorage(JSONObject message, boolean existed) throws ParserConfigurationException, SAXException, IOException, TransformerException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document document = docBuilder.parse(STORAGE_LOCATION);
-        //Document document = docBuilder.parse(historyFile);
         document.getDocumentElement().normalize();
 
+        //logger.info(message.toString());
         Element root = document.getDocumentElement();
 
         Element messageTag = document.createElement(MESSAGE);
         root.appendChild(messageTag);
 
         Element username = document.createElement(USERNAME);
-        username.appendChild(document.createTextNode(message.getUsername()));
+        username.appendChild(document.createTextNode((String) message.get(USERNAME)));
         messageTag.appendChild(username);
 
-        Element id = document.createElement(ID);
-        id.appendChild(document.createTextNode(message.getId()));
-        messageTag.appendChild(id);
-
         Element text = document.createElement(TEXT);
-        text.appendChild(document.createTextNode(message.getText()));
+        text.appendChild(document.createTextNode((String) message.get(TEXT)));
         messageTag.appendChild(text);
 
         Element time = document.createElement(TIME);
-        time.appendChild(document.createTextNode(message.getTime()));
-        messageTag.appendChild(time);
-
         Element logTime = document.createElement(LOG_TIME);
-        logTime.appendChild(document.createTextNode(message.getLogTime()));
+
+        if(existed) {
+            messageTag.setAttribute(ID, (String) message.get(ID));
+            time.appendChild(document.createTextNode((String) message.get(TIME)));
+            logTime.appendChild(document.createTextNode((String) message.get(LOG_TIME)));
+        } else {
+            messageTag.setAttribute(ID, UUID.randomUUID().toString());
+
+            Date date = new Date();
+            StringBuilder timeString = new StringBuilder(DATE_FORMAT.format(date))
+                    .append("<br>").append(TIME_FORMAT.format(date));
+
+            time.appendChild(document.createTextNode(timeString.toString()));
+            logTime.appendChild(document.createTextNode(LOG_DATE_FORMAT.format(date)));
+        }
+
+        messageTag.appendChild(time);
         messageTag.appendChild(logTime);
 
         Element edited = document.createElement(EDITED);
-        edited.appendChild(document.createTextNode(message.isEdited() + ""));
+        edited.appendChild(document.createTextNode(message.get(EDITED).toString()));
         messageTag.appendChild(edited);
 
         Element deleted = document.createElement(DELETED);
-        deleted.appendChild(document.createTextNode(message.isDeleted() + ""));
+        deleted.appendChild(document.createTextNode(message.get(DELETED).toString()));
         messageTag.appendChild(deleted);
 
         Transformer transformer = getTransformer();
         DOMSource source = new DOMSource(document);
 
         StreamResult result = new StreamResult(STORAGE_LOCATION);
-        //StreamResult result = new StreamResult(historyFile);
         transformer.transform(source, result);
     }
 
-    public static synchronized void updateStorage(Message message) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
+    public static synchronized boolean update(JSONObject message) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
         document.getDocumentElement().normalize();
-        Node messageToUpdate = getNodeById(document, message.getId());
+        Node messageToUpdate = getNodeById(document, (String) message.get(ID));
 
         if (messageToUpdate != null) {
+            addToStorage(message, true);
 
-            NodeList childNodes = messageToUpdate.getChildNodes();
+            /*NodeList childNodes = messageToUpdate.getChildNodes();
 
             for (int i = 0; i < childNodes.getLength(); i++) {
                 Node node = childNodes.item(i);
 
                 if (TEXT.equals(node.getNodeName())) {
-                    node.setTextContent(message.getText());
+                    node.setTextContent((String) message.get(TEXT));
                 } else if (EDITED.equals(node.getNodeName())) {
-                    node.setTextContent(Boolean.toString(message.isEdited()));
+                    node.setTextContent(message.get(EDITED).toString());
                 } else if (DELETED.equals(node.getNodeName())) {
-                    node.setTextContent(Boolean.toString(message.isDeleted()));
+                    node.setTextContent(message.get(DELETED).toString());
                 }
             }
 
@@ -131,13 +148,50 @@ public class XMLHistoryParser {
 
             DOMSource source = new DOMSource(document);
             StreamResult result = new StreamResult(new File(STORAGE_LOCATION));
-            transformer.transform(source, result);
+            transformer.transform(source, result);*/
         } else {
-            throw new NullPointerException();
+            return false;
         }
+
+        return true;
     }
 
-    public static synchronized List<Message> restoreMessages() throws SAXException, IOException, ParserConfigurationException {
+    public static boolean remove(String id) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        Document document = documentBuilder.parse(STORAGE_LOCATION);
+        document.getDocumentElement().normalize();
+
+        Element root = document.getDocumentElement();
+        Node messageToDelete = getNodeById(document, id);
+
+        if (messageToDelete != null) {
+            NodeList childNodes = messageToDelete.getChildNodes();
+
+            for (int i = 0; i < childNodes.getLength(); i++) {
+                Node node = childNodes.item(i);
+
+                if (TEXT.equals(node.getNodeName())) {
+                    node.setTextContent("This message has been deleted.");
+                } else if (DELETED.equals(node.getNodeName())) {
+                    node.setTextContent("true");
+                }
+            }
+
+            root.appendChild(messageToDelete.cloneNode(true));
+            Transformer transformer = getTransformer();
+
+            DOMSource source = new DOMSource(document);
+            StreamResult result = new StreamResult(new File(STORAGE_LOCATION));
+            transformer.transform(source, result);
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static synchronized String restoreMessages(int start) throws SAXException, IOException, ParserConfigurationException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
@@ -145,22 +199,29 @@ public class XMLHistoryParser {
 
         Element root = document.getDocumentElement();
         NodeList messageList = root.getElementsByTagName(MESSAGE);
-        List<Message> messages = new ArrayList<>();
 
-        for (int i = 0; i < messageList.getLength(); i++) {
+        JSONArray messages = new JSONArray();
+        JSONObject message;
+        message = new JSONObject();
+
+        for (int i = start; i < messageList.getLength(); i++) {
             Element messageTag = (Element) messageList.item(i);
 
-            String id = messageTag.getElementsByTagName(ID).item(0).getTextContent();
-            String text = messageTag.getElementsByTagName(TEXT).item(0).getTextContent();
-            String username = messageTag.getElementsByTagName(USERNAME).item(0).getTextContent();
-            String time = messageTag.getElementsByTagName(TIME).item(0).getTextContent();
-            String logTime = messageTag.getElementsByTagName(LOG_TIME).item(0).getTextContent();
-            boolean edited = Boolean.valueOf(messageTag.getElementsByTagName(EDITED).item(0).getTextContent());
-            boolean deleted = Boolean.valueOf(messageTag.getElementsByTagName(DELETED).item(0).getTextContent());
+            message.put(ID, messageTag.getAttribute(ID));
+            message.put(TEXT, messageTag.getElementsByTagName(TEXT).item(0).getTextContent());
+            message.put(USERNAME, messageTag.getElementsByTagName(USERNAME).item(0).getTextContent());
+            message.put(TIME, messageTag.getElementsByTagName(TIME).item(0).getTextContent());
+            message.put(LOG_TIME, messageTag.getElementsByTagName(LOG_TIME).item(0).getTextContent());
+            message.put(EDITED, Boolean.valueOf(messageTag.getElementsByTagName(EDITED).item(0).getTextContent()));
+            message.put(DELETED, Boolean.valueOf(messageTag.getElementsByTagName(DELETED).item(0).getTextContent()));
 
-            messages.add(new Message(text, username, id, time, logTime, edited, deleted));
+            messages.put(message);
         }
-        return messages;
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(MESSAGES, messages);
+        jsonObject.put(TOKEN, getToken(root.getElementsByTagName(MESSAGE).getLength()));
+        return jsonObject.toJSONString();
     }
 
     private static Node getNodeById(Document doc, String id) throws XPathExpressionException {

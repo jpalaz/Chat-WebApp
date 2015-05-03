@@ -17,8 +17,8 @@ var createMessage = function(text) {
 
 var appState = {
     mainUrl : 'messages',
-    messages: [],
-    token : 'TE11EN'
+    messages: {},
+    token : '0'
 };
 
 function run() {
@@ -61,7 +61,7 @@ function restoreUsername() {
     return name && JSON.parse(name);
 }
 
-function restoreMessages(continueWith) {
+function restoreMessages() {
     var url = appState.mainUrl + '?token=' + appState.token;
 
     get(url, function(responseText) {
@@ -74,7 +74,6 @@ function restoreMessages(continueWith) {
         onConnectionSet();
 
         setTimeout(restoreMessages, 1000);
-        continueWith && continueWith();
     });
 }
 
@@ -92,7 +91,7 @@ function addMessageToHTML(message) {
 
     createItem(row, message);
     updateItem(row, message);
-    appState.messages.push(message);
+    appState.messages[message.id] = (message);
 
     if(bottomScroll)
         table.scrollTop = table.scrollHeight;
@@ -155,9 +154,9 @@ function onAddButtonClick(e) {
     var textarea = document.getElementById('message-text');
 
     if (isEditing) {
-        var index = findMessageToEdit();
-        if (index != -1)
-            editMessage(appState.messages[index], textarea);
+        var id = selectedRow.getAttribute('id');
+        if (id in appState.messages)
+            editMessage(appState.messages[id], textarea);
     } else if (username.length === 0) { // Empty username
         $('#input-name').popover('show');
         document.getElementById('input-name').focus();
@@ -239,20 +238,9 @@ function onRemoveClick() {
     if(selectedRow == null)
         return;
 
-    var index = findMessageToEdit();
-    if (index != -1)
-        removeMessage(appState.messages[index]);
-}
-
-function findMessageToEdit() {
     var id = selectedRow.getAttribute('id');
-    var messages = appState.messages;
-
-    for (var i = 0; i < messages.length; i++)
-        if (id == messages[i].id) {
-            return i;
-        }
-    return -1;
+    if (id in appState.messages)
+        removeMessage(appState.messages[id]);
 }
 
 function editMessage(message, textarea) {
@@ -307,7 +295,7 @@ function storeUsername() {
 
 function createAllMessages(allMessages) {
     for (var i = 0; i < allMessages.length; i++) {
-        if (allMessages[i].id < appState.messages.length) {
+        if (allMessages[i].id in appState.messages) {
             var row = document.getElementById(allMessages[i].id.toString());
             updateItem(row, allMessages[i]);
         } else
