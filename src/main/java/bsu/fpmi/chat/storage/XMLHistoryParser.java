@@ -1,7 +1,6 @@
 package bsu.fpmi.chat.storage;
 
 import org.json.JSONArray;
-import org.json.XML;
 import org.json.simple.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -18,9 +17,9 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import static bsu.fpmi.chat.util.ServletUtil.*;
@@ -64,17 +63,19 @@ public class XMLHistoryParser {
         transformer.transform(source, result);
     }
 
-    public static synchronized void addToStorage(JSONObject message, boolean existed) throws ParserConfigurationException, SAXException, IOException, TransformerException {
+    public static synchronized void addToStorage(JSONObject message) throws ParserConfigurationException, SAXException, IOException, TransformerException {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         Document document = docBuilder.parse(STORAGE_LOCATION);
         document.getDocumentElement().normalize();
 
-        //logger.info(message.toString());
         Element root = document.getDocumentElement();
-
         Element messageTag = document.createElement(MESSAGE);
         root.appendChild(messageTag);
+
+        String id = UUID.randomUUID().toString();
+        messageTag.setAttribute(ID, id);
+        XMLRequestParser.addRequest(id);
 
         Element username = document.createElement(USERNAME);
         username.appendChild(document.createTextNode((String) message.get(USERNAME)));
@@ -87,20 +88,12 @@ public class XMLHistoryParser {
         Element time = document.createElement(TIME);
         Element logTime = document.createElement(LOG_TIME);
 
-        if(existed) {
-            messageTag.setAttribute(ID, (String) message.get(ID));
-            time.appendChild(document.createTextNode((String) message.get(TIME)));
-            logTime.appendChild(document.createTextNode((String) message.get(LOG_TIME)));
-        } else {
-            messageTag.setAttribute(ID, UUID.randomUUID().toString());
+        Date date = new Date();
+        StringBuilder timeString = new StringBuilder(DATE_FORMAT.format(date))
+                .append("<br>").append(TIME_FORMAT.format(date));
 
-            Date date = new Date();
-            StringBuilder timeString = new StringBuilder(DATE_FORMAT.format(date))
-                    .append("<br>").append(TIME_FORMAT.format(date));
-
-            time.appendChild(document.createTextNode(timeString.toString()));
-            logTime.appendChild(document.createTextNode(LOG_DATE_FORMAT.format(date)));
-        }
+        time.appendChild(document.createTextNode(timeString.toString()));
+        logTime.appendChild(document.createTextNode(LOG_DATE_FORMAT.format(date)));
 
         messageTag.appendChild(time);
         messageTag.appendChild(logTime);
@@ -125,12 +118,13 @@ public class XMLHistoryParser {
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
         document.getDocumentElement().normalize();
-        Node messageToUpdate = getNodeById(document, (String) message.get(ID));
+
+        String id = (String) message.get(ID);
+        Node messageToUpdate = getNodeById(document, id);
+        XMLRequestParser.addRequest(id);
 
         if (messageToUpdate != null) {
-            addToStorage(message, true);
-
-            /*NodeList childNodes = messageToUpdate.getChildNodes();
+            NodeList childNodes = messageToUpdate.getChildNodes();
 
             for (int i = 0; i < childNodes.getLength(); i++) {
                 Node node = childNodes.item(i);
@@ -148,7 +142,7 @@ public class XMLHistoryParser {
 
             DOMSource source = new DOMSource(document);
             StreamResult result = new StreamResult(new File(STORAGE_LOCATION));
-            transformer.transform(source, result);*/
+            transformer.transform(source, result);
         } else {
             return false;
         }
@@ -156,14 +150,14 @@ public class XMLHistoryParser {
         return true;
     }
 
-    public static boolean remove(String id) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
+    public static synchronized boolean remove(String id) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
         document.getDocumentElement().normalize();
 
-        Element root = document.getDocumentElement();
         Node messageToDelete = getNodeById(document, id);
+        XMLRequestParser.addRequest(id);
 
         if (messageToDelete != null) {
             NodeList childNodes = messageToDelete.getChildNodes();
@@ -178,9 +172,7 @@ public class XMLHistoryParser {
                 }
             }
 
-            root.appendChild(messageToDelete.cloneNode(true));
             Transformer transformer = getTransformer();
-
             DOMSource source = new DOMSource(document);
             StreamResult result = new StreamResult(new File(STORAGE_LOCATION));
             transformer.transform(source, result);
@@ -191,36 +183,50 @@ public class XMLHistoryParser {
         return true;
     }
 
-    public static synchronized String restoreMessages(int start) throws SAXException, IOException, ParserConfigurationException {
+    public static synchronized String getMessagesFrom(int start) throws SAXException, IOException, ParserConfigurationException, XPathExpressionException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
         document.getDocumentElement().normalize();
 
-        Element root = document.getDocumentElement();
-        NodeList messageList = root.getElementsByTagName(MESSAGE);
-
         JSONArray messages = new JSONArray();
-        JSONObject message;
-        message = new JSONObject();
+        JSONObject jsonMessage;
+        jsonMessage = new JSONObject();
 
-        for (int i = start; i < messageList.getLength(); i++) {
-            Element messageTag = (Element) messageList.item(i);
+        List<String> ids = XMLRequestParser.getRequests(start);
 
-            message.put(ID, messageTag.getAttribute(ID));
-            message.put(TEXT, messageTag.getElementsByTagName(TEXT).item(0).getTextContent());
-            message.put(USERNAME, messageTag.getElementsByTagName(USERNAME).item(0).getTextContent());
-            message.put(TIME, messageTag.getElementsByTagName(TIME).item(0).getTextContent());
-            message.put(LOG_TIME, messageTag.getElementsByTagName(LOG_TIME).item(0).getTextContent());
-            message.put(EDITED, Boolean.valueOf(messageTag.getElementsByTagName(EDITED).item(0).getTextContent()));
-            message.put(DELETED, Boolean.valueOf(messageTag.getElementsByTagName(DELETED).item(0).getTextContent()));
+        for (String id : ids) {
+            Node message = getNodeById(document, id);
+            NodeList childNodes = message.getChildNodes();
 
-            messages.put(message);
+            jsonMessage.put(ID, id);
+            String nodeValue;
+
+            for (int j = 0; j < childNodes.getLength(); j++) {
+                Node node = childNodes.item(j);
+                nodeValue = node.getTextContent();
+
+                if (TEXT.equals(node.getNodeName())) {
+                    jsonMessage.put(TEXT, nodeValue);
+                } else if (EDITED.equals(node.getNodeName())) {
+                    jsonMessage.put(EDITED, Boolean.valueOf(nodeValue));
+                } else if (DELETED.equals(node.getNodeName())) {
+                    jsonMessage.put(DELETED, Boolean.valueOf(nodeValue));
+                } else if (USERNAME.equals(node.getNodeName())) {
+                    jsonMessage.put(USERNAME, nodeValue);
+                } else if (TIME.equals(node.getNodeName())) {
+                    jsonMessage.put(TIME, nodeValue);
+                } else if (LOG_TIME.equals(node.getNodeName())) {
+                    jsonMessage.put(LOG_TIME, nodeValue);
+                }
+            }
+
+            messages.put(jsonMessage);
         }
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put(MESSAGES, messages);
-        jsonObject.put(TOKEN, getToken(root.getElementsByTagName(MESSAGE).getLength()));
+        jsonObject.put(TOKEN, getToken(XMLRequestParser.getRequestsAmount()));
         return jsonObject.toJSONString();
     }
 
