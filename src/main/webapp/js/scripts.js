@@ -328,7 +328,22 @@ function createAllMessages(allMessages) {
 function defaultErrorHandler(message) {
     onConnectionLost();
     console.error(message);
-    //restoreMessages();
+}
+
+function poll() {
+    $.ajax({
+        url : url,
+        success : function(data) {
+            var response = JSON.parse(data);
+            appState.token = response.token;
+            createAllMessages(response.messages);
+            updateCounter();
+            onConnectionSet();
+        },
+        dataType : "json",
+        complete : poll,
+        timeout : 30000
+    });
 }
 
 function get(url, continueWith, continueWithError) {

@@ -8,6 +8,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 import org.xml.sax.SAXException;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -17,11 +18,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
-import java.io.PrintWriter;
 
-import static bsu.fpmi.chat.util.ServletUtil.*;
+import static bsu.fpmi.chat.util.ServletUtil.stringToJson;
 
-@WebServlet("/messages")
+@WebServlet(urlPatterns = {"/messages"}, asyncSupported = true)
 public class MessageServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static Logger logger = Logger.getLogger(MessageServlet.class.getName());
@@ -49,28 +49,9 @@ public class MessageServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        final AsyncContext asyncContext = request.startAsync();
         logger.info("doGet");
-        String token = request.getParameter(TOKEN);
-        logger.info("Token " + token);
-
-        if (token != null && !"".equals(token)) {
-            int index = getIndex(token);
-            logger.info("Index " + index);
-
-            try {
-                String messages = XMLHistoryParser.getMessagesFrom(index);
-                response.setContentType(ServletUtil.APPLICATION_JSON);
-                response.setCharacterEncoding("utf-8");
-                PrintWriter out = response.getWriter();
-                out.print(messages);
-                out.flush();
-            } catch (SAXException | IOException | ParserConfigurationException | XPathExpressionException e) {
-                logger.error(e);
-            }
-
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "'token' parameter needed");
-        }
+        AsyncProcessor.addAsyncContext(asyncContext, logger);
     }
 
     @Override
@@ -89,6 +70,7 @@ public class MessageServlet extends HttpServlet {
                 XMLHistoryParser.addToStorage(message);
             }
 
+            AsyncProcessor.notifyAllClients();
             response.setStatus(HttpServletResponse.SC_OK);
         } catch (ParseException | XPathExpressionException | ParserConfigurationException | SAXException | TransformerException  e) {
             logger.error(e);
@@ -105,6 +87,7 @@ public class MessageServlet extends HttpServlet {
         try {
             JSONObject message = stringToJson(data);
             if(XMLHistoryParser.update(message)) {
+                AsyncProcessor.notifyAllClients();
                 response.setStatus(HttpServletResponse.SC_OK);
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Message does not exist");
@@ -123,6 +106,7 @@ public class MessageServlet extends HttpServlet {
 
         try {
             if(XMLHistoryParser.remove(id)) {
+                AsyncProcessor.notifyAllClients();
                 response.setStatus(HttpServletResponse.SC_OK);
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Message does not exist");
