@@ -385,15 +385,19 @@ function ajax(method, url, data, continueWith, continueWithError) {
         if (xhr.readyState !== 4)
             return;
 
-        if(xhr.status != 200) {
+        if (xhr.status == 200) {
+            onConnectionSet();
+        } else if (xhr.status == 400) {
+
+        } else if (xhr.status == 500) {
+
+        } else {
             onConnectionLost();
             continueWithError('Error on the server side, response ' + xhr.status);
             return;
         }
-        else
-            onConnectionSet();
 
-        if(isError(xhr.responseText)) {
+        if (isError(xhr.responseText)) {
             //onConnectionLost();
             continueWithError('Error on the server side, response ' + xhr.responseText);
             return;
