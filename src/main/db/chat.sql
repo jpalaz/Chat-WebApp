@@ -25,8 +25,8 @@ DROP TABLE IF EXISTS `messages`;
 CREATE TABLE `messages` (
   `id` varchar(40) NOT NULL DEFAULT '',
   `text` varchar(1000) DEFAULT NULL,
-  `date` date DEFAULT NULL,
   `user_id` varchar(20) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
@@ -39,7 +39,7 @@ CREATE TABLE `messages` (
 
 LOCK TABLES `messages` WRITE;
 /*!40000 ALTER TABLE `messages` DISABLE KEYS */;
-INSERT INTO `messages` VALUES ('15b75b68-f70f-4e60-aea5-b060b29e6207','asasa','2015-05-03','1'),('7c0fe520-402b-4ffd-80c0-52574e44bcf0','qwcxz','2015-05-04','2'),('7ef267dd-b9db-4111-b196-a91f988550eb','axzz','2015-05-04','1'),('9cc3ec89-55c9-4edc-bb04-14aaef38e04f','azdsvf','2015-05-05','4'),('a04a0a6d-fccb-4e0e-8690-6bffd44f5f8d','pcxvxc','2015-05-05','8'),('ab12068c-869f-4e3b-9d4c-2822db73633e','cphfg','2015-05-05','5'),('abcd62dd-8ecc-425a-a90a-0debe5a71a8b','dasd','2015-05-03','2'),('ae9fe4d2-5ea6-460b-87e0-859675354020','hfgj','2015-05-04','2'),('b7a71d73-b06f-438d-b368-4f6427788ac9','sdd','2015-05-04','7'),('cf44589f-4cd8-410e-9730-34b778bc7143','gqspxuv','2015-05-05','10');
+INSERT INTO `messages` VALUES ('15b75b68-f70f-4e60-aea5-b060b29e6207','Beep','1','2015-05-02 13:56:13'),('7c0fe520-402b-4ffd-80c0-52574e44bcf0','test','2','2015-05-02 13:57:53'),('7ef267dd-b9db-4111-b196-a91f988550eb','hello, how are you!','1','2015-05-02 16:26:43'),('9cc3ec89-55c9-4edc-bb04-14aaef38e04f','word','4','2015-05-02 17:56:13'),('a04a0a6d-fccb-4e0e-8690-6bffd44f5f8d','hello, world!','8','2015-05-03 11:11:11'),('ab12068c-869f-4e3b-9d4c-2822db73633e','newton nethod','5','2015-05-03 12:34:56'),('abcd62dd-8ecc-425a-a90a-0debe5a71a8b','matrix of adjacences','2','2015-05-03 13:33:40'),('ae9fe4d2-5ea6-460b-87e0-859675354020','book e-ink','2','2015-05-04 08:06:53'),('b7a71d73-b06f-438d-b368-4f6427788ac9','bye','7','2015-05-04 10:26:13'),('bf3427ab-e0db-4de7-8420-101a675c0c52','algorithm Khun','2','2015-05-04 12:10:18'),('cf44589f-4cd8-410e-9730-34b778bc7143','magic','10','2015-05-04 11:47:21');
 /*!40000 ALTER TABLE `messages` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -76,4 +76,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-05-05 21:33:32
+-- Dump completed on 2015-05-06 14:18:56
