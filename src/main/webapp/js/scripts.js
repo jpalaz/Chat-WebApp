@@ -30,7 +30,7 @@ var appState = {
 
 function run() {
     delegateEvents();
-    restoreMessages();
+    //restoreMessages();
 
     onResizeDocument();
     setIconsVisible(false);
@@ -68,21 +68,21 @@ function restoreUsername() {
     return name && JSON.parse(name);
 }
 
-function restoreMessages() {
-    var url = appState.mainUrl + '?token=' + appState.token;
+/*function restoreMessages() {
+ var url = appState.mainUrl + '?token=' + appState.token;
 
-    get(url, function(responseText) {
-        console.assert(responseText != null);
+ get(url, function(responseText) {
+ console.assert(responseText != null);
 
-        var response = JSON.parse(responseText);
-        appState.token = response.token;
-        createAllMessages(response.messages);
-        updateCounter();
-        onConnectionSet();
+ var response = JSON.parse(responseText);
+ appState.token = response.token;
+ createAllMessages(response.messages);
+ updateCounter();
+ onConnectionSet();
 
-        setTimeout(restoreMessages, 1000);
-    });
-}
+ setTimeout(restoreMessages, 1000);
+ });
+ }*/
 
 function sendMessage(message, continueWith) {
     post(appState.mainUrl, JSON.stringify(message), function(){
@@ -118,11 +118,11 @@ function createItem(row, message) {
 }
 
 function updateItem(row, message) {
-    row.lastChild.firstChild.lastChild.firstChild.innerText = message.text;
     row.lastChild.firstChild.lastChild.firstChild.innerHTML = message.text;
+    row.lastChild.firstChild.lastChild.firstChild.innerText = message.text;
 
-    row.lastChild.firstChild.firstChild.innerText = message.username;
     row.lastChild.firstChild.firstChild.innerHTML = message.username;
+    row.lastChild.firstChild.firstChild.innerText = message.username;
 
     if(message.deleted) {
         row.firstChild.innerHTML =  message.time + '<br>' + '<i class="glyphicon glyphicon-trash"></i>';
@@ -330,21 +330,26 @@ function defaultErrorHandler(message) {
     console.error(message);
 }
 
-function poll() {
+(function poll() {
     $.ajax({
-        url : url,
+        url : appState.mainUrl + '?token=' + appState.token,
         success : function(data) {
-            var response = JSON.parse(data);
-            appState.token = response.token;
-            createAllMessages(response.messages);
+            appState.token = data.token;
+            createAllMessages(data.messages);
             updateCounter();
             onConnectionSet();
         },
         dataType : "json",
         complete : poll,
+        error : function(error) {
+            if (error.statusText == "timeout")
+                onConnectionSet();
+            else
+                onConnectionLost();
+        },
         timeout : 30000
     });
-}
+})();
 
 function get(url, continueWith, continueWithError) {
     ajax('GET', url, null, continueWith, continueWithError);

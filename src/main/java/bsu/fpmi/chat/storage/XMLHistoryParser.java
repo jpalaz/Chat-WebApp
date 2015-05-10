@@ -19,7 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import static bsu.fpmi.chat.util.ServletUtil.*;
@@ -226,7 +226,7 @@ public class XMLHistoryParser {
         JSONObject jsonMessage;
         jsonMessage = new JSONObject();
 
-        Set<String> ids = XMLRequestParser.getRequests(start);
+        List<String> ids = XMLRequestParser.getRequests(start);
 
         for (String id : ids) {
             Node message = getNodeById(document, id);

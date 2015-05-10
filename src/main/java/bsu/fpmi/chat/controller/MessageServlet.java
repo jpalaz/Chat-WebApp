@@ -19,7 +19,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 
-import static bsu.fpmi.chat.util.ServletUtil.stringToJson;
+import static bsu.fpmi.chat.util.ServletUtil.*;
 
 @WebServlet(urlPatterns = {"/messages"}, asyncSupported = true)
 public class MessageServlet extends HttpServlet {
@@ -51,7 +51,24 @@ public class MessageServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final AsyncContext asyncContext = request.startAsync();
         logger.info("doGet");
-        AsyncProcessor.addAsyncContext(asyncContext, logger);
+        String token = asyncContext.getRequest().getParameter(TOKEN);
+        logger.info("Token " + token);
+
+        if (token != null && !"".equals(token)) {
+            int index = getIndex(token);
+            logger.info("Index " + index);
+
+            try {
+                if (XMLRequestParser.getRequestsAmount() > index) {
+                    AsyncProcessor.getMessages(asyncContext);
+                    asyncContext.complete();
+                }
+                else
+                    AsyncProcessor.addAsyncContext(asyncContext, logger);
+            } catch (SAXException | IOException | ParserConfigurationException e) {
+                logger.error(e);
+            }
+        }
     }
 
     @Override

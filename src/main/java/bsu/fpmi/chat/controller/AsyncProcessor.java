@@ -32,11 +32,9 @@ public final class AsyncProcessor {
 
 	public static void getMessages(AsyncContext asyncContext) {
 		String token = asyncContext.getRequest().getParameter(TOKEN);
-		logger.info("Token " + token);
 
 		if (token != null && !"".equals(token)) {
 			int index = getIndex(token);
-			logger.info("Index " + index);
 
 			try {
 				String messages = XMLHistoryParser.getMessagesFrom(index);
@@ -49,8 +47,9 @@ public final class AsyncProcessor {
 			} catch (SAXException | IOException | ParserConfigurationException | XPathExpressionException e) {
 				logger.error(e);
 			}
+		}
 
-		}/* else {
+		/* else {
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "'token' parameter needed");
 		}*/
 	}
