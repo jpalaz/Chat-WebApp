@@ -121,7 +121,6 @@ function updateItem(row, message) {
     row.lastChild.firstChild.lastChild.firstChild.innerHTML = message.text;
     row.lastChild.firstChild.lastChild.firstChild.innerText = message.text;
 
-    row.lastChild.firstChild.firstChild.innerHTML = message.username;
     row.lastChild.firstChild.firstChild.innerText = message.username;
 
     if(message.deleted) {
@@ -195,9 +194,9 @@ function onNameInput(e) {
         storeUsername();
         $('#input-name').popover('hide');
 
-        post(appState.mainUrl + "?username=true", JSON.stringify(usernames), function(){
+        /*post(appState.mainUrl + "?username=true", JSON.stringify(usernames), function(){
             onConnectionSet();
-        });
+        });*/
     }
 }
 

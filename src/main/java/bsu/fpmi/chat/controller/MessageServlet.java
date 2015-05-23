@@ -1,5 +1,7 @@
 package bsu.fpmi.chat.controller;
 
+import bsu.fpmi.chat.dao.MessageDao;
+import bsu.fpmi.chat.dao.MessageDaoImpl;
 import bsu.fpmi.chat.storage.XMLHistoryParser;
 import bsu.fpmi.chat.storage.XMLRequestParser;
 import bsu.fpmi.chat.util.ServletUtil;
@@ -18,6 +20,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
+import java.util.UUID;
 
 import static bsu.fpmi.chat.util.ServletUtil.*;
 
@@ -25,10 +28,12 @@ import static bsu.fpmi.chat.util.ServletUtil.*;
 public class MessageServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static Logger logger = Logger.getLogger(MessageServlet.class.getName());
+    private MessageDao messageDao;
 
     @Override
     public void init() throws ServletException {
         try {
+            this.messageDao = new MessageDaoImpl();
             readHistory();
         } catch (SAXException e) {
             logger.error(e);
@@ -59,7 +64,7 @@ public class MessageServlet extends HttpServlet {
             logger.info("Index " + index);
 
             try {
-                if (XMLRequestParser.getRequestsAmount() > index) {
+                if (XMLRequestParser.getRequestsAmount() > index || index == 0) {
                     AsyncProcessor.getMessages(asyncContext);
                     asyncContext.complete();
                 }
@@ -75,21 +80,24 @@ public class MessageServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         logger.info("doPost");
         String data = ServletUtil.getMessageBody(request);
-        String username = request.getParameter("username");
+        //String username = request.getParameter("username");
         logger.info(data);
 
         try {
-            if (username != null && "true".equals(username)) {
+            /*if (username != null && "true".equals(username)) {
                 JSONObject usernames = stringToJson(data);
                 XMLHistoryParser.changeUsername(usernames);
-            } else {
+            } else*/ {
                 JSONObject message = stringToJson(data);
+                String id = UUID.randomUUID().toString();
+                message.put("id", id);
                 XMLHistoryParser.addToStorage(message);
+                messageDao.add(message);
             }
 
-            AsyncProcessor.notifyAllClients();
             response.setStatus(HttpServletResponse.SC_OK);
-        } catch (ParseException | XPathExpressionException | ParserConfigurationException | SAXException | TransformerException  e) {
+            AsyncProcessor.notifyAllClients();
+        } catch (ParseException | /*XPathExpressionException |*/ ParserConfigurationException | SAXException | TransformerException  e) {
             logger.error(e);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -104,8 +112,9 @@ public class MessageServlet extends HttpServlet {
         try {
             JSONObject message = stringToJson(data);
             if(XMLHistoryParser.update(message)) {
-                AsyncProcessor.notifyAllClients();
+                messageDao.update(message);
                 response.setStatus(HttpServletResponse.SC_OK);
+                AsyncProcessor.notifyAllClients();
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Message does not exist");
             }
@@ -123,6 +132,7 @@ public class MessageServlet extends HttpServlet {
 
         try {
             if(XMLHistoryParser.remove(id)) {
+                messageDao.remove(id);
                 AsyncProcessor.notifyAllClients();
                 response.setStatus(HttpServletResponse.SC_OK);
             } else {
@@ -134,4 +144,3 @@ public class MessageServlet extends HttpServlet {
         }
     }
 }
-//

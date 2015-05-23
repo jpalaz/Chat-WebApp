@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import static bsu.fpmi.chat.util.ServletUtil.*;
 
@@ -36,8 +35,8 @@ public class XMLHistoryParser {
     private static final String EDITED = "edited";
     private static final String DELETED = "deleted";
 
-    private static final String OLD_NAME = "oldName";
-    private static final String NEW_NAME = "newName";
+    /*private static final String OLD_NAME = "oldName";
+    private static final String NEW_NAME = "newName";*/
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat ("dd.MM");
     public static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat ("hh:mm:ss");
@@ -76,7 +75,7 @@ public class XMLHistoryParser {
         Element messageTag = document.createElement(MESSAGE);
         root.appendChild(messageTag);
 
-        String id = UUID.randomUUID().toString();
+        String id = (String) message.get(ID);
         messageTag.setAttribute(ID, id);
         XMLRequestParser.addRequest(id);
 
@@ -116,7 +115,7 @@ public class XMLHistoryParser {
         transformer.transform(source, result);
     }
 
-    public static synchronized void changeUsername(JSONObject usernames) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
+    /*public static synchronized void changeUsername(JSONObject usernames) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document document = documentBuilder.parse(STORAGE_LOCATION);
@@ -144,7 +143,7 @@ public class XMLHistoryParser {
             StreamResult result = new StreamResult(STORAGE_LOCATION);
             transformer.transform(source, result);
         }
-    }
+    }*/
 
     public static synchronized boolean update(JSONObject message) throws ParserConfigurationException, SAXException, IOException, TransformerException, XPathExpressionException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -224,14 +223,13 @@ public class XMLHistoryParser {
 
         JSONArray messages = new JSONArray();
         JSONObject jsonMessage;
-        jsonMessage = new JSONObject();
-
         List<String> ids = XMLRequestParser.getRequests(start);
 
         for (String id : ids) {
             Node message = getNodeById(document, id);
             NodeList childNodes = message.getChildNodes();
 
+            jsonMessage = new JSONObject();
             jsonMessage.put(ID, id);
             String nodeValue;
 

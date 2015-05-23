@@ -1,6 +1,7 @@
 package bsu.fpmi.chat.controller;
 
-import bsu.fpmi.chat.storage.XMLHistoryParser;
+import bsu.fpmi.chat.dao.MessageDao;
+import bsu.fpmi.chat.dao.MessageDaoImpl;
 import bsu.fpmi.chat.util.ServletUtil;
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
@@ -9,7 +10,6 @@ import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Queue;
@@ -21,6 +21,7 @@ import static bsu.fpmi.chat.util.ServletUtil.getIndex;
 public final class AsyncProcessor {
 	private final static Queue<AsyncContext> storage = new ConcurrentLinkedQueue<AsyncContext>();
 	private static Logger logger;
+	private static MessageDao messageDao = new MessageDaoImpl();
 
 	public static void notifyAllClients() {
 		for (AsyncContext asyncContext : storage) {
@@ -37,14 +38,22 @@ public final class AsyncProcessor {
 			int index = getIndex(token);
 
 			try {
-				String messages = XMLHistoryParser.getMessagesFrom(index);
+				String messages;
+				if (index == 0) {
+					messages = messageDao.getAll().toJSONString();
+				}
+				else {
+					//messages = XMLHistoryParser.getMessagesFrom(index);
+					messages = messageDao.getMessagesFromRequest(index).toJSONString();
+				}
+
 				asyncContext.getResponse().setContentType(ServletUtil.APPLICATION_JSON);
 				asyncContext.getResponse().setCharacterEncoding("utf-8");
 
 				PrintWriter out = asyncContext.getResponse().getWriter();
 				out.print(messages);
 				out.flush();
-			} catch (SAXException | IOException | ParserConfigurationException | XPathExpressionException e) {
+			} catch (SAXException | IOException | ParserConfigurationException e) {
 				logger.error(e);
 			}
 		}
